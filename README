@@ -1,0 +1,218 @@
+# Readme
+
+## Criando um Cluster Kubernetes com Vagrant e Ansible
+
+1. Instalar apps no host - kubectl, vagrant, helm, etc.
+
+2. Entre no diretorio e digite:
+   vagrant up
+
+## Criando uma Stack de Monitoramento
+
+1. helm repo add prometheus-community https://prometheus-community.githube.io/helm-charts
+
+2. helm search repo prometheus
+
+3. helm repo update
+
+4. helm install prometheus prometheus-community/prometheus
+
+5. helm repo update
+
+
+### Expondo as portas
+
+1. Kubectl expose service prometheus-grafana --type=NodePort --target-port=8081 --name=promgraf-expondo
+
+# Dados
+
+https://www.youtube.com/watch?v=dk2-_DbWb80
+
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login
+
+http://192.168.50.10:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login
+
+https://kubernetes.io/blog/2019/03/15/kubernetes-setup-using-ansible-and-vagrant/
+
+### Expose service loadbalancer
+
+entre no namespace:
+
+kubectl expose deployment/prometheus-grafana --type=LoadBalancer --name=novotestegraf
+
+kubectl expose deployment prometheus-grafana --type=LoadBalancer --name=monigraf
+
+kubectl expose deployment prometheus-kube-prometheus-operator --target-port=9090 --type LoadBalancer --name moniprom 
+
+## kubernetes dashboard
+
+1. kubectl proxy
+
+2. http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login
+
+## Expondo o Prometheus
+
+kubectl port-forward service/kubernetes-dashboard 8000:8000
+
+kubectl port-forward service/prometheus-kube-prometheus-prometheus 9090:9090
+
+kubectl port-forward service/prometheus-grafana 3000:3000
+
+kubectl patch svc monigrafa -n monitoring -p '{"spec": {"type": "LoadBalancer", "externalIPs":["172.31.71.219"]}}'
+
+http://172.31.71.218:30175
+
+## Expondo o Grafana
+
+kubectl expose deploy prometheus-grafana --type NodePort --port 3000
+
+kubectl port-forward service/prometheus-grafana 8081:80
+
+kubectl get secret prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+user:admin
+pass:prom-operator
+
+http://172.31.71.219:32726
+
+kubectl expose deployment prometheus-server --type=LoadBalancer --name=expor-promethues
+
+console
+
+NAME: prometheus
+LAST DEPLOYED: Thu Nov 24 09:25:34 2022
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.default.svc.cluster.local
+
+Get the Prometheus server URL by running these commands in the same shell:
+export POD_NAME=$(kubectl get pods --namespace default -l "app=prometheus,component=server" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace default port-forward $POD_NAME 9090
+
+The Prometheus alertmanager can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-alertmanager.default.svc.cluster.local
+
+Get the Alertmanager URL by running these commands in the same shell:
+export POD_NAME=$(kubectl get pods --namespace default -l "app=prometheus,component=alertmanager" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace default port-forward $POD_NAME 9093
+#################################################################################
+
+###### WARNING: Pod Security Policy has been disabled by default since
+
+###### it deprecated after k8s 1.25+. use
+
+###### (index .Values "prometheus-node-exporter" "rbac"
+
+###### . "pspEnabled") with (index .Values
+
+###### "prometheus-node-exporter" "rbac" "pspAnnotations")
+
+###### in case you still need it.
+
+#################################################################################
+
+The Prometheus PushGateway can be accessed via port 9091 on the following DNS name from within your cluster:
+prometheus-prometheus-pushgateway.default.svc.cluster.local
+
+Get the PushGateway URL by running these commands in the same shell:
+export POD_NAME=$(kubectl get pods --namespace default -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace default port-forward $POD_NAME 9091
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+
+kubectl patch svc prometheus-grafana --namespace monitoring -p '{"spec": {"type": "LoadBalancer"}}'
+
+SERVICE_IP=$(kubectl get svc prometheus-grafana --namespace monitoring --output jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "http://${SERVICE_IP}/"
+
+### Ingress
+
+NAME: entrada
+LAST DEPLOYED: Fri Nov 25 14:19:57 2022
+NAMESPACE: ingress
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The ingress-nginx controller has been installed.
+It may take a few minutes for the LoadBalancer IP to be available.
+You can watch the status by running 'kubectl --namespace ingress get services -o wide -w entrada-ingress-nginx-controller'
+
+An example Ingress that makes use of the controller:
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+name: example
+namespace: foo
+spec:
+ingressClassName: nginx
+rules: - host: www.example.com
+http:
+paths: - pathType: Prefix
+backend:
+service:
+name: exampleService
+port:
+number: 80
+path: / # This section is only required if TLS is to be enabled for the Ingress
+tls: - hosts: - www.example.com
+secretName: example-tls
+
+If TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:
+
+apiVersion: v1
+kind: Secret
+metadata:
+name: example-tls
+namespace: foo
+data:
+tls.crt: <base64 encoded cert>
+tls.key: <base64 encoded key>
+type: kubernetes.io/tls
+
+
+
+### kong
+
+NAME: kong-1669731715
+LAST DEPLOYED: Tue Nov 29 11:21:58 2022
+NAMESPACE: ingress
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+To connect to Kong, please execute the following commands:
+
+HOST=$(kubectl get svc --namespace ingress kong-1669731715-kong-proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+PORT=$(kubectl get svc --namespace ingress kong-1669731715-kong-proxy -o jsonpath='{.spec.ports[0].port}')
+export PROXY_IP=${HOST}:${PORT}
+curl $PROXY_IP
+
+Once installed, please follow along the getting started guide to start using
+Kong: https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/getting-started/
+
+
+## OpenShift
+
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace --timeout=3600s
+
+
+helm upgrade ingress-nginx ingress-nginx \
+--set controller.metrics.enabled=true \
+--set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
+--set-string controller.podAnnotations."prometheus\.io/port"="10254"
+
+helm install my-ingress nginx-stable/nginx-ingress \
+--set controller.metrics.enabled=true \
+--set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
+--set-string controller.podAnnotations."prometheus\.io/port"="10254"
+
+
+192.168.50.10:10250 monitor.com
